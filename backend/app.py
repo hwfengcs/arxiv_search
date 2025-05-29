@@ -4,6 +4,8 @@ import arxiv
 import datetime
 import io
 
+
+
 app = Flask(__name__)
 CORS(app)  # 允许所有来源的跨域请求
 
@@ -29,9 +31,19 @@ def fetch_papers_route():
     # 用户可以直接输入 'ti:"Language Models" AND (cat:cs.AI OR cat:cs.CL)' 这样的复杂查询
     # 或者简单输入 'Language Models'，我们会尝试将其作为标题搜索
     search_query = user_query
-    # 如果用户没有指定字段（如ti:, au:, cat:），则默认为标题搜索
+    # 如果用户没有指定字段（如ti:, au:, cat:），则默认为标题和摘要的模糊搜索
     if not any(field_prefix in user_query.lower() for field_prefix in ['ti:', 'au:', 'abs:', 'co:', 'jr:', 'cat:', 'rn:', 'id:', 'all:']):
-        search_query = f'ti:"{user_query}"'
+        keywords = user_query.split()
+        if keywords:
+            # 构建 (ti:keyword1 OR abs:keyword1) AND (ti:keyword2 OR abs:keyword2) ... 的查询
+            keyword_queries = [f'(ti:{keyword} OR abs:{keyword})' for keyword in keywords]
+            search_query = ' AND '.join(keyword_queries)
+        else:
+            # 如果分割后没有关键词（例如用户只输入了空格），则保持原始查询或进行特定处理
+            search_query = user_query # 或者可以返回错误提示用户输入有效关键词
+    else:
+        # 如果用户指定了字段，则使用用户的原始查询
+        search_query = user_query
 
     # 计算日期范围
     # 我们要找的是从 'days' 天前的00:00:00 UTC 到今天的23:59:59 UTC 的论文
