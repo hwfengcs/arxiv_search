@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>arxiv论文查找工具</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <h1>arxiv论文查找工具</h1>
+            <p>快速发现最新的科研动态</p>
+        </header>
+
+        <main class="app-main">
+            <section class="search-section">
+                <h2>智能搜索</h2>
+                <div class="search-controls">
+                    <input type="text" id="search-query-input" class="search-input" placeholder="输入论文主题关键词">
+                    <input type="number" id="time-limit-input" class="search-input" placeholder="最近天数 (例如: 7)" min="1">
+                    <button id="fetch-papers-btn" class="search-button">查找论文</button>
+                </div>
+            </section>
+
+            <section class="results-section">
+                <h2>搜索结果</h2>
+                <div id="papers-output" class="papers-grid-container">
+                    <!-- 论文卡片将在这里动态插入 -->
+                </div>
+                <div class="action-buttons">
+                    <button id="download-report-btn" class="action-button">下载报告</button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>&copy; 2024 arxiv论文查找工具. All Rights Reserved.</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,238 @@
+:root {
+    --primary-color: #3498db; /* 鲜艳的蓝色 */
+    --secondary-color: #2ecc71; /* 清新的绿色 */
+    --background-color: #ecf0f1; /* 浅灰色背景 */
+    --surface-color: #ffffff; /* 白色卡片背景 */
+    --text-color: #34495e; /* 深灰色文字 */
+    --muted-text-color: #7f8c8d; /* 较浅的灰色文字 */
+    --border-color: #bdc3c7; /* 边框颜色 */
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --font-family: 'Roboto', sans-serif;
+}
+
+body {
+    font-family: var(--font-family);
+    margin: 0;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    display: flex;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.app-container {
+    width: 90%;
+    max-width: 1200px;
+    background-color: var(--surface-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 25px var(--shadow-color);
+    overflow: hidden;
+}
+
+.app-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: var(--surface-color);
+    padding: 40px 30px;
+    text-align: center;
+}
+
+.app-header h1 {
+    margin: 0 0 10px 0;
+    font-size: 2.8em;
+    font-weight: 700;
+}
+
+.app-header p {
+    margin: 0;
+    font-size: 1.2em;
+    font-weight: 300;
+}
+
+.app-main {
+    padding: 30px;
+}
+
+.search-section, .results-section {
+    margin-bottom: 40px;
+}
+
+.search-section h2, .results-section h2 {
+    font-size: 1.8em;
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--secondary-color);
+    padding-bottom: 10px;
+}
+
+.search-controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex-grow: 1;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1em;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.search-button, .action-button {
+    padding: 12px 25px;
+    background-color: var(--primary-color);
+    color: var(--surface-color);
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 500;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.search-button:hover, .action-button:hover {
+    background-color: #2980b9; /* 深一点的蓝色 */
+    transform: translateY(-2px);
+}
+
+.action-button {
+    background-color: var(--secondary-color);
+}
+
+.action-button:hover {
+    background-color: #27ae60; /* 深一点的绿色 */
+}
+
+.action-buttons {
+    text-align: right;
+    margin-top: 20px;
+}
+
+.papers-grid-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 25px;
+}
+
+.paper-card {
+    background-color: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 15px var(--shadow-color);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.paper-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.paper-card h3 {
+    font-size: 1.4em;
+    color: var(--primary-color);
+    margin: 0 0 10px 0;
+}
+
+.paper-card .authors {
+    font-size: 0.9em;
+    color: var(--muted-text-color);
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.paper-card .summary {
+    font-size: 0.95em;
+    margin-bottom: 15px;
+    flex-grow: 1;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.paper-card .meta-info {
+    font-size: 0.85em;
+    color: var(--muted-text-color);
+    margin-bottom: 15px;
+}
+
+.paper-card .pdf-link {
+    display: inline-block;
+    align-self: flex-start;
+    padding: 8px 15px;
+    background-color: var(--secondary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 5px;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease;
+}
+
+.paper-card .pdf-link:hover {
+    background-color: #27ae60;
+}
+
+.app-footer {
+    background-color: #2c3e50; /* 深蓝灰色页脚 */
+    color: var(--background-color);
+    text-align: center;
+    padding: 20px 30px;
+    font-size: 0.9em;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .app-container {
+        width: 95%;
+    }
+
+    .app-header h1 {
+        font-size: 2.2em;
+    }
+
+    .app-header p {
+        font-size: 1em;
+    }
+
+    .search-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-input, .search-button {
+        width: 100%;
+        box-sizing: border-box; /* 确保 padding 和 border 不会使元素超出100% */
+    }
+
+    .papers-grid-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-main {
+        padding: 20px;
+    }
+
+    .app-header {
+        padding: 30px 20px;
+    }
+
+    .app-header h1 {
+        font-size: 1.8em;
+    }
+
+    .paper-card h3 {
+        font-size: 1.2em;
+    }
+}
