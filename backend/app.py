@@ -3,16 +3,85 @@ from flask_cors import CORS
 import arxiv
 import datetime
 import io
+import time
+import hashlib
+import requests
+import json
 
+# 导入deep-translator作为主要翻译服务
+try:
+    from deep_translator import GoogleTranslator
+    deep_translator_available = True
+except ImportError:
+    deep_translator_available = False
 
 
 app = Flask(__name__)
 CORS(app)  # 允许所有来源的跨域请求
 
+# 简单的内存缓存，用于存储翻译结果
+translation_cache = {}
+
+def get_cache_key(text, target_lang):
+    """生成缓存键"""
+    content = f"{text}_{target_lang}"
+    return hashlib.md5(content.encode('utf-8')).hexdigest()
+
+def translate_text_with_fallback(text, target_lang='zh'):
+    """使用deep-translator进行翻译"""
+    if not text or not text.strip():
+        return text
+
+    # 转换语言代码
+    if target_lang == 'zh':
+        deep_translator_lang = 'zh-CN'
+    else:
+        deep_translator_lang = target_lang
+
+    # 检查缓存
+    cache_key = get_cache_key(text, target_lang)
+    if cache_key in translation_cache:
+        app.logger.info(f"使用缓存翻译: {text[:50]}...")
+        return translation_cache[cache_key]
+
+    # 使用deep-translator进行翻译
+    if deep_translator_available:
+        try:
+            app.logger.info(f"使用deep-translator翻译: {text[:50]}...")
+            translator_deep = GoogleTranslator(source='auto', target=deep_translator_lang)
+            translated_text = translator_deep.translate(text)
+
+            # 缓存结果
+            translation_cache[cache_key] = translated_text
+            app.logger.info(f"deep-translator翻译成功: {text[:50]}... -> {translated_text[:50]}...")
+            return translated_text
+        except Exception as e:
+            app.logger.error(f"deep-translator翻译失败: {e}")
+    else:
+        app.logger.error("deep-translator不可用")
+
+    # 如果翻译失败，返回原文
+    app.logger.warning(f"翻译服务失败，返回原文: {text[:50]}...")
+    return text
+
+def is_chinese(text):
+    """检查文本是否包含中文字符"""
+    for char in text:
+        if '\u4e00' <= char <= '\u9fff':
+            return True
+    return False
+
+
+
+def translate_text(text, target_lang='zh'):
+    """翻译文本到指定语言（保持向后兼容）"""
+    return translate_text_with_fallback(text, target_lang)
+
 @app.route('/fetch_papers', methods=['GET'])
 def fetch_papers_route():
     user_query = request.args.get('query', '').strip()
     days_str = request.args.get('days', '7').strip() # 默认为7天
+    translate_to_chinese = request.args.get('translate', 'false').lower() == 'true'  # 是否翻译为中文
 
     if not user_query:
         # 前端应该已经处理了空查询，但后端也做一次校验
@@ -61,24 +130,42 @@ def fetch_papers_route():
         papers_data = []
         for result in search.results():
             paper_published_date_utc = result.published.date() # 取日期部分进行比较
-            
+
             # 过滤掉早于 N 天前第一天的论文
             if paper_published_date_utc >= start_date_limit:
-                papers_data.append({
-                    'title': result.title,
+                title = result.title
+                summary = result.summary.replace('\n', ' ').strip()
+
+                # 如果需要翻译，则翻译标题和摘要
+                if translate_to_chinese:
+                    title_zh = translate_text(title)
+                    summary_zh = translate_text(summary)
+                else:
+                    title_zh = None
+                    summary_zh = None
+
+                paper_data = {
+                    'title': title,
                     'authors': [author.name for author in result.authors], # 添加作者信息
-                    'summary': result.summary.replace('\n', ' ').strip(),
+                    'summary': summary,
                     'pdf_url': result.pdf_url,
                     'published_date': result.published.strftime('%Y-%m-%d'), # 只保留日期
                     'updated_date': result.updated.strftime('%Y-%m-%d'),   # 只保留日期
                     'arxiv_id': result.entry_id.split('/')[-1]
-                })
+                }
+
+                # 如果有翻译，添加翻译字段
+                if translate_to_chinese:
+                    paper_data['title_zh'] = title_zh
+                    paper_data['summary_zh'] = summary_zh
+
+                papers_data.append(paper_data)
             # 由于结果已按提交日期降序排列，一旦论文日期早于我们的N天窗口，后续的也会早，可以提前停止
             # 但考虑到API可能返回少量不完全按序的结果，或者为了简单，可以处理完所有max_results
             # 增加一个判断，如果已经取到一些数据，并且当前论文已经超出了时间范围，就停止
             elif paper_published_date_utc < start_date_limit and len(papers_data) > 0:
                  break
-        
+
         # 返回时，不再需要 success 字段，前端可以直接判断 papers 数组长度
         # 如果没有找到论文，返回空数组和提示信息
         if not papers_data:
@@ -90,13 +177,85 @@ def fetch_papers_route():
         app.logger.error(f"Error fetching from arXiv: {e}")
         return jsonify({'message': f'从arXiv获取论文时出错: {str(e)}'}), 500
 
+@app.route('/translate', methods=['POST'])
+def translate_route():
+    """独立的翻译API端点"""
+    try:
+        data = request.get_json()
+        if not data or 'text' not in data:
+            return jsonify({'message': '未提供要翻译的文本'}), 400
+
+        text_to_translate = data.get('text')
+        target_lang = data.get('target_lang', 'zh')  # 默认翻译为中文
+
+        if not text_to_translate or not text_to_translate.strip():
+            return jsonify({'message': '翻译文本不能为空'}), 400
+
+        # 检查文本长度，避免翻译过长的文本
+        if len(text_to_translate) > 5000:
+            return jsonify({'message': '文本过长，请分段翻译（最大5000字符）'}), 400
+
+        translated_text = translate_text(text_to_translate, target_lang)
+
+        # 检查翻译是否成功（如果翻译结果与原文相同且原文不是中文，可能翻译失败）
+        translation_success = translated_text != text_to_translate or target_lang == 'zh'
+
+        return jsonify({
+            'original_text': text_to_translate,
+            'translated_text': translated_text,
+            'target_lang': target_lang,
+            'translation_success': translation_success,
+            'cached': get_cache_key(text_to_translate, target_lang) in translation_cache
+        }), 200
+
+    except Exception as e:
+        app.logger.error(f"Error in translation: {e}")
+        return jsonify({'message': f'翻译时出错: {str(e)}'}), 500
+
+@app.route('/translation_status', methods=['GET'])
+def translation_status():
+    """获取翻译服务状态"""
+    try:
+        # 测试翻译服务是否可用
+        test_text = "Hello"
+        test_result = translate_text(test_text, 'zh')
+
+        return jsonify({
+            'status': 'available',
+            'cache_size': len(translation_cache),
+            'test_translation': {
+                'original': test_text,
+                'translated': test_result
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unavailable',
+            'error': str(e),
+            'cache_size': len(translation_cache)
+        }), 200
+
+@app.route('/clear_translation_cache', methods=['POST'])
+def clear_translation_cache():
+    """清空翻译缓存"""
+    try:
+        cache_size_before = len(translation_cache)
+        translation_cache.clear()
+
+        return jsonify({
+            'message': '翻译缓存已清空',
+            'cleared_entries': cache_size_before
+        }), 200
+    except Exception as e:
+        return jsonify({'message': f'清空缓存时出错: {str(e)}'}), 500
+
 @app.route('/generate_report', methods=['POST']) # 改为POST，接收论文数据
 def generate_report_route():
     try:
         data = request.get_json()
         if not data or 'papers' not in data:
             return jsonify({'message': '未提供论文数据'}), 400
-        
+
         papers_to_report = data.get('papers')
 
         if not papers_to_report or not isinstance(papers_to_report, list):
@@ -121,7 +280,7 @@ def generate_report_route():
         report_io = io.BytesIO()
         report_io.write(report_content.encode('utf-8'))
         report_io.seek(0)
-        
+
         return send_file(
             report_io,
             mimetype='text/markdown',
@@ -134,5 +293,12 @@ def generate_report_route():
         return jsonify({'message': f'生成报告时出错: {str(e)}'}), 500
 
 if __name__ == '__main__':
+    # 设置日志级别
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    app.logger.setLevel(logging.INFO)
+
     # 确保监听所有接口，方便外部访问，例如在Docker容器中
+    print("启动Flask应用...")
+    print(f"deep-translator状态: {'可用' if deep_translator_available else '不可用'}")
     app.run(debug=True, host='0.0.0.0', port=5000)

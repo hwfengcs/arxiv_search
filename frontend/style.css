@@ -72,6 +72,28 @@ body {
     flex-wrap: wrap;
 }
 
+.translate-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.95em;
+    color: var(--text-color);
+}
+
+.translate-control label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.translate-control input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
 .search-input {
     flex-grow: 1;
     padding: 12px 15px;
@@ -180,6 +202,46 @@ body {
 
 .paper-card .pdf-link:hover {
     background-color: #27ae60;
+}
+
+.paper-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.translate-btn, .toggle-translation-btn {
+    padding: 6px 12px;
+    background-color: #f39c12;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85em;
+    transition: background-color 0.3s ease;
+}
+
+.translate-btn:hover, .toggle-translation-btn:hover {
+    background-color: #e67e22;
+}
+
+.translate-btn:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+}
+
+.translation-controls {
+    margin-top: 10px;
+    text-align: right;
+}
+
+.toggle-translation-btn {
+    background-color: #9b59b6;
+}
+
+.toggle-translation-btn:hover {
+    background-color: #8e44ad;
 }
 
 .app-footer {
